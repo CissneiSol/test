@@ -1,8 +1,8 @@
 import eventlet
 eventlet.monkey_patch()  # Перемещаем вызов monkey_patch() в самое начало
 
-from flask import Flask, render_template, request
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask import Flask, request
+from flask_socketio import SocketIO, emit
 import time
 
 # Создаем приложение
@@ -20,10 +20,6 @@ user_last_activity = {}
 
 # Интервал времени для ограничения (в секундах)
 COOLDOWN_TIME = 5  # Ограничение в 5 секунд
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @socketio.on('connect')
 def handle_connect():
