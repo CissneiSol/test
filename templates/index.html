@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Art</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100;
+            margin: 0;
+            background-color: #000000;
+            flex-direction: column;
+        }
+        h1 {
+            color: white;  /* Белый цвет текста */
+            font-size: 36px;
+            margin-top: 20px;
+        }
+        /* Контейнер для выбора цвета */
+        #colorPickerContainer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(150, 6px);  /* Указываем фиксированный размер пикселей */
+            grid-template-rows: repeat(150, 6px);     /* Указываем фиксированный размер пикселей */
+        }
+        .pixel {
+            width: 6px;  /* Фиксированный размер пикселя */
+            height: 6px;  /* Фиксированный размер пикселя */
+            background-color: #FFFFFF;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Solana Canvas</h1>
+    <div id="grid"></div>
+
+    <input type="color" id="colorPicker" value="#FF0000">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        const socket = io.connect();
+        const colorPicker = document.getElementById('colorPicker');
+        const grid = document.getElementById('grid');
+
+        const width = 150; // Количество пикселей по горизонтали
+        const height = 150; // Количество пикселей по вертикали
+
+        // Функция для создания сетки
+        function updateGrid() {
+            grid.innerHTML = '';  // Очищаем сетку перед перерисовкой
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const pixel = document.createElement('div');
+                    pixel.classList.add('pixel');
+                    pixel.dataset.x = x;
+                    pixel.dataset.y = y;
+                    pixel.onclick = () => paintPixel(x, y);
+                    grid.appendChild(pixel);
+                }
+            }
+        }
+
+        // Инициализация сетки
+        updateGrid();
+
+        // Обработчик события, когда сервер отправляет состояние всех пикселей
+        socket.on('initialize_pixels', (data) => {
+            const { pixels } = data;
+            pixels.forEach((row, y) => {
+                row.forEach((pixel, x) => {
+                    const gridPixel = grid.children[y * width + x];
+                    gridPixel.style.backgroundColor = pixel.color;
+                });
+            });
+        });
+
+        // Функция отправки запроса на изменение цвета пикселя
+        function paintPixel(x, y) {
+            const color = colorPicker.value;
+            socket.emit('paint_pixel', { x, y, color });
+        }
+
+        // Обновление пикселя при получении сообщения
+        socket.on('update_pixel', (data) => {
+            const pixel = grid.children[data.y * width + data.x];
+            pixel.style.backgroundColor = data.color;
+        });
+
+        // Сообщение о времени до следующей возможности перекрасить пиксель
+        socket.on('cooldown', (data) => {
+            alert(`Пиксель еще нельзя перекрасить. Подождите ${data.time_left} секунд.`);
+        });
+    </script>
+</body>
+</html>
